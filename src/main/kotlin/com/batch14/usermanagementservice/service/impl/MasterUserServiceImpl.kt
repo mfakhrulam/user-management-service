@@ -1,13 +1,19 @@
 package com.batch14.usermanagementservice.service.impl
 
+import com.batch14.usermanagementservice.domain.dto.request.ReqRegisterDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
+import com.batch14.usermanagementservice.domain.entity.MasterUserEntity
+import com.batch14.usermanagementservice.exception.CustomException
+import com.batch14.usermanagementservice.repository.MasterRoleRepository
 import com.batch14.usermanagementservice.repository.MasterUserRepository
 import com.batch14.usermanagementservice.service.MasterUserService
 import org.springframework.stereotype.Service
+import java.util.Optional
 
 @Service
 class MasterUserServiceImpl(
-    private val masterUserRepository: MasterUserRepository
+    private val masterUserRepository: MasterUserRepository,
+    private val masterRoleRepository: MasterRoleRepository
 ): MasterUserService {
     override fun findAllActiveUsers(): List<ResGetUsersDto> {
         val rawData = masterUserRepository.getAllActiveUser()
@@ -39,5 +45,53 @@ class MasterUserServiceImpl(
             roleName = rawData.role?.name
         )
         return result
+    }
+
+    override fun register(req: ReqRegisterDto): ResGetUsersDto {
+        val role = if(req.roleId == null) {
+            Optional.empty()  // ini berarti optional.isEmpty bernilai true
+            // beda dengan null
+        } else {
+            masterRoleRepository.findById(req.roleId)
+        }
+
+        // cek apakah role id ada
+        if(role.isEmpty && req.roleId != null) {
+            throw CustomException("Role ${req.roleId} tidak ditemukan", 400)
+        }
+
+        // cek apakah email sudah terdaftar
+        val existingUserEmail = masterUserRepository.findFirstByEmail(req.email)
+        println(existingUserEmail)
+        if(existingUserEmail != null) {
+            throw CustomException("Email sudah terdaftar", 400)
+        }
+
+        val existingUsername = masterUserRepository.findFirstByUsername(req.username)
+        if (existingUsername.isPresent) {
+            throw CustomException("Username sudah terdaftar", 400)
+        }
+
+        val userRaw = MasterUserEntity(
+            email = req.email,
+            password = req.password,
+            username = req.username,
+            role = if(role.isPresent){ // ini ga pake role != null
+                role.get()
+            } else {
+                null
+            }
+        )
+        // entity/row dari hasil save dijadikan sebagai return value
+        // save bakal mengembalikan data dari db
+        val user = masterUserRepository.save(userRaw)
+        return ResGetUsersDto(
+            id = user.id,
+            email = user.email,
+            username = user.username,
+            roleId = user.role?.id,
+            roleName = user.role?.name
+        )
+
     }
 }

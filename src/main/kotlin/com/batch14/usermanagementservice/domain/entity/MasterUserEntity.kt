@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
@@ -17,9 +18,17 @@ import java.sql.Timestamp
 @Table(name = "mst_users")
 data class MasterUserEntity(
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id")
-    var id: Int,
+    @GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "mst_users_id_seq", // samain kaya db
+    )
+    @SequenceGenerator(
+        name = "mst_users_id_seq", // name used in @GeneratedValue
+        sequenceName = "mst_users_id_seq", // name of sequence in DB
+        allocationSize = 1 // adjust based on how your DB increments
+    )
+    @Column(name = "id", insertable = false, updatable = false)
+    var id: Int = 0,
 
     @Column(name = "email")
     var email: String,
