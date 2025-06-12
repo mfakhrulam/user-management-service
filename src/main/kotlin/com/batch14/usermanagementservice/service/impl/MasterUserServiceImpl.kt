@@ -1,6 +1,5 @@
 package com.batch14.usermanagementservice.service.impl
 
-import com.batch14.usermanagementservice.domain.dto.response.ResGetUserByIdDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
 import com.batch14.usermanagementservice.repository.MasterUserRepository
 import com.batch14.usermanagementservice.service.MasterUserService
@@ -30,9 +29,9 @@ class MasterUserServiceImpl(
         return result
     }
 
-    override fun findActiveUserById(userId: Int): ResGetUserByIdDto {
+    override fun findActiveUserById(userId: Int): ResGetUsersDto {
         val rawData = masterUserRepository.getActiveUserById(userId)
-        val result = ResGetUserByIdDto(
+        val result = ResGetUsersDto(
             username = rawData.username,
             id = rawData.id,
             email = rawData.email,

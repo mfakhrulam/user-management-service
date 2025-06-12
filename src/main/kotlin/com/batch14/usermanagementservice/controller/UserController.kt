@@ -1,6 +1,5 @@
 package com.batch14.usermanagementservice.controller
 
-import com.batch14.usermanagementservice.domain.dto.response.ResGetUserByIdDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
 import com.batch14.usermanagementservice.service.MasterUserService
 import org.springframework.http.ResponseEntity
@@ -24,7 +23,7 @@ class UserController(
     @GetMapping("/active/{id}")
     fun getActiveUserById(
         @PathVariable(name = "id") idUser: Int
-    ): ResponseEntity<ResGetUserByIdDto> {
+    ): ResponseEntity<ResGetUsersDto> {
         return ResponseEntity.ok(
             masterUserService.findActiveUserById(idUser)
         )

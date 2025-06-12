@@ -1,9 +1,8 @@
 package com.batch14.usermanagementservice.service
 
-import com.batch14.usermanagementservice.domain.dto.response.ResGetUserByIdDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
 
 interface MasterUserService {
     fun findAllActiveUsers(): List<ResGetUsersDto>
-    fun findActiveUserById(userId: Int): ResGetUserByIdDto
+    fun findActiveUserById(userId: Int): ResGetUsersDto
 }
