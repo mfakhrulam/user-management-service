@@ -1,19 +1,25 @@
 package com.batch14.usermanagementservice.service.impl
 
+import com.batch14.usermanagementservice.domain.dto.request.ReqLoginDto
 import com.batch14.usermanagementservice.domain.dto.request.ReqRegisterDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
+import com.batch14.usermanagementservice.domain.dto.response.ResLoginDto
 import com.batch14.usermanagementservice.domain.entity.MasterUserEntity
 import com.batch14.usermanagementservice.exception.CustomException
 import com.batch14.usermanagementservice.repository.MasterRoleRepository
 import com.batch14.usermanagementservice.repository.MasterUserRepository
 import com.batch14.usermanagementservice.service.MasterUserService
+import com.batch14.usermanagementservice.util.BCryptUtil
+import com.batch14.usermanagementservice.util.JwtUtil
 import org.springframework.stereotype.Service
 import java.util.Optional
 
 @Service
 class MasterUserServiceImpl(
     private val masterUserRepository: MasterUserRepository,
-    private val masterRoleRepository: MasterRoleRepository
+    private val masterRoleRepository: MasterRoleRepository,
+    private val bcrypt: BCryptUtil,
+    private val jwtUtil: JwtUtil
 ): MasterUserService {
     override fun findAllActiveUsers(): List<ResGetUsersDto> {
         val rawData = masterUserRepository.getAllActiveUser()
@@ -93,5 +99,28 @@ class MasterUserServiceImpl(
             roleName = user.role?.name
         )
 
+    }
+
+    override fun login(req: ReqLoginDto): ResLoginDto {
+        val userEntityOpt = masterUserRepository.findFirstByUsername(req.username)
+
+        if (userEntityOpt.isEmpty) {
+            throw CustomException("Username atau Password salah", 400)
+        }
+
+        val userEntity = userEntityOpt.get()
+        if (!bcrypt.verify(req.password, userEntity.password)) {
+            throw CustomException("Username atau Password salah", 400)
+        }
+
+        val role = if (userEntity.role != null) {
+            userEntity.role!!.name
+        } else {
+            "user"
+        }
+
+        val token = jwtUtil.generateToken(userEntity.id, role)
+
+        return ResLoginDto(token)
     }
 }
