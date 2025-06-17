@@ -22,7 +22,7 @@ interface MasterUserRepository: JpaRepository<MasterUserEntity, Int> {
     """, nativeQuery = false)
     fun getUserById(
         @Param("userId") userId: Int
-    ): MasterUserEntity
+    ): Optional<MasterUserEntity>
 
     fun findFirstByEmail(email: String): MasterUserEntity?
 

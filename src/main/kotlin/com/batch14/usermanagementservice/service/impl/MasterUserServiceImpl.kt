@@ -56,13 +56,19 @@ class MasterUserServiceImpl(
         key= "{#userId}" // harus sama dengan yg di parameter
     )
     override fun findUserById(userId: Int): ResGetUsersDto {
-        val rawData = masterUserRepository.getUserById(userId)
+        val user = masterUserRepository.getUserById(userId).orElseThrow {
+            throw CustomException(
+                "User id $userId tidak ditemukan",
+                HttpStatus.BAD_REQUEST.value()
+            )
+        }
+
         val result = ResGetUsersDto(
-            username = rawData.username,
-            id = rawData.id,
-            email = rawData.email,
-            roleId = rawData.role?.id,
-            roleName = rawData.role?.name
+            username = user.username,
+            id = user.id,
+            email = user.email,
+            roleId = user.role?.id,
+            roleName = user.role?.name
         )
         return result
     }
