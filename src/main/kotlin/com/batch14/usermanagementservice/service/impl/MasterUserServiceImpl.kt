@@ -4,6 +4,7 @@ import com.batch14.usermanagementservice.domain.constant.Constant
 import com.batch14.usermanagementservice.domain.dto.request.ReqLoginDto
 import com.batch14.usermanagementservice.domain.dto.request.ReqRegisterDto
 import com.batch14.usermanagementservice.domain.dto.request.ReqUpdateUserDto
+import com.batch14.usermanagementservice.domain.dto.response.ResDeletedUserDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
 import com.batch14.usermanagementservice.domain.dto.response.ResLoginDto
 import com.batch14.usermanagementservice.domain.entity.MasterUserEntity
@@ -14,10 +15,12 @@ import com.batch14.usermanagementservice.service.MasterUserService
 import com.batch14.usermanagementservice.util.BCryptUtil
 import com.batch14.usermanagementservice.util.JwtUtil
 import jakarta.servlet.http.HttpServletRequest
+import jakarta.transaction.Transactional
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import java.sql.Timestamp
 import java.util.Optional
 import kotlin.text.toInt
 
@@ -51,10 +54,10 @@ class MasterUserServiceImpl(
 
     // kalau data belum ada, data akan di simpan
     // kalau data di redis udah ada bakal langsung return data dari redis
-    @Cacheable(
-        "getUserById",
-        key= "{#userId}" // harus sama dengan yg di parameter
-    )
+//    @Cacheable(
+//        "getUserById",
+//        key= "{#userId}" // harus sama dengan yg di parameter
+//    )
     override fun findUserById(userId: Int): ResGetUsersDto {
         val user = masterUserRepository.getUserById(userId).orElseThrow {
             throw CustomException(
@@ -161,17 +164,16 @@ class MasterUserServiceImpl(
         }
     }
 
-    @CacheEvict(
-        value = ["getUserById"],
-        key = "{#userId}"
-//        allEntries = true
-    )
+//    @CacheEvict(
+//        value = ["getUserById"],
+//        key = "{#userId}"
+////        allEntries = true
+//    )
     override fun updateUser(req: ReqUpdateUserDto, userId: Int): ResGetUsersDto {
-
         val user = masterUserRepository.findById(userId.toInt()).orElseThrow {
             throw CustomException(
                 "User id $userId tidak ditemukan",
-                HttpStatus.BAD_REQUEST.value()
+                HttpStatus.BAD_REQUEST.value(),
             )
         }
 
@@ -196,5 +198,61 @@ class MasterUserServiceImpl(
             username =  result.username,
             email = result.email
         )
+    }
+
+    // tidak ada penjelasan bisa hapus ke siapa? ke diri sendiri atau gimana? hapus user lain?
+    // akhirnya untuk delete ku bebaskan semua, kecuali kalau id gaada,
+    // role admin bisa hard delete ke semua user,
+    // semua role bisa soft delete ke siapapun
+    @Transactional
+    override fun hardDeleteUserById(userId: Int): ResDeletedUserDto {
+        // isinya "admmin" atau "user"
+        val roleUser = httpServletRequest.getHeader(Constant.HEADER_USER_ROLE)
+        // tidak perlu pencocokan user id dan role karena masuk dari JWT token
+
+        if(!roleUser.equals("admin")) {
+            throw CustomException(
+                "Unauthorized user",
+                HttpStatus.UNAUTHORIZED.value()
+            )
+        }
+
+        val deleteUser = masterUserRepository.findById(userId.toInt()).orElseThrow {
+            throw CustomException(
+                "User id $userId tidak ditemukan",
+                HttpStatus.BAD_REQUEST.value()
+            )
+        }
+
+        masterUserRepository.hardDeleteUser(deleteUser.id)
+        return ResDeletedUserDto(
+            id = deleteUser.id,
+            username = deleteUser.username,
+            deletedAt = Timestamp(System.currentTimeMillis())
+        )
+    }
+
+    override fun softDeleteUserById(userId: Int): ResDeletedUserDto {
+        val requestUserId = httpServletRequest.getHeader(Constant.HEADER_USER_ID)
+        val deleteUser = masterUserRepository.findById(userId.toInt()).orElseThrow {
+            throw CustomException(
+                "User id $userId tidak ditemukan",
+                HttpStatus.BAD_REQUEST.value(),
+            )
+        }
+
+        deleteUser.isActive = false
+        deleteUser.isDelete = true
+        deleteUser.deletedBy = requestUserId.toString()
+        deleteUser.deletedAt = Timestamp(System.currentTimeMillis())
+
+        val result = masterUserRepository.save(deleteUser)
+
+        return ResDeletedUserDto(
+            id = result.id,
+            username = result.username,
+            deletedAt = result.deletedAt!!
+        )
+
     }
 }

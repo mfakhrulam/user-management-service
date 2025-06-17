@@ -5,6 +5,7 @@ import com.batch14.usermanagementservice.domain.dto.request.ReqLoginDto
 import com.batch14.usermanagementservice.domain.dto.request.ReqRegisterDto
 import com.batch14.usermanagementservice.domain.dto.request.ReqUpdateUserDto
 import com.batch14.usermanagementservice.domain.dto.response.BaseResponse
+import com.batch14.usermanagementservice.domain.dto.response.ResDeletedUserDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
 import com.batch14.usermanagementservice.domain.dto.response.ResLoginDto
 import com.batch14.usermanagementservice.service.MasterUserService
@@ -81,6 +82,30 @@ class UserController(
         return ResponseEntity.ok(
             BaseResponse(
                 data = masterUserService.updateUser(req, userId.toInt())
+            )
+        )
+    }
+
+    @DeleteMapping("{id}/hard-delete")
+    fun hardDeleteUser(
+        @PathVariable("id") deletedIdUser: Int
+    ): ResponseEntity<BaseResponse<ResDeletedUserDto>> {
+        return ResponseEntity.ok(
+            BaseResponse(
+                data = masterUserService.hardDeleteUserById(deletedIdUser.toInt()),
+                message = "User berhasil dihapus"
+            )
+        )
+    }
+
+    @DeleteMapping("{id}/soft-delete")
+    fun softDeleteUser(
+        @PathVariable("id") deletedIdUser: Int
+    ): ResponseEntity<BaseResponse<ResDeletedUserDto>> {
+        return ResponseEntity.ok(
+            BaseResponse(
+                data = masterUserService.softDeleteUserById(deletedIdUser.toInt()),
+                message = "User berhasil dihapus"
             )
         )
     }

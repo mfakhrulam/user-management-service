@@ -33,7 +33,7 @@ class GlobalExceptionHandler {
         return ResponseEntity(
             BaseResponse(
                 message = exception.exceptionMessage,
-                status = "T",
+                status = "F",
                 error = exception.data,
             ),
             HttpStatus.valueOf(exception.statusCode)
