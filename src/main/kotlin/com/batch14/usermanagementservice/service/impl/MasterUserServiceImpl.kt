@@ -14,9 +14,12 @@ import com.batch14.usermanagementservice.service.MasterUserService
 import com.batch14.usermanagementservice.util.BCryptUtil
 import com.batch14.usermanagementservice.util.JwtUtil
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.util.Optional
+import kotlin.text.toInt
 
 @Service
 class MasterUserServiceImpl(
@@ -46,6 +49,12 @@ class MasterUserServiceImpl(
         return result
     }
 
+    // kalau data belum ada, data akan di simpan
+    // kalau data di redis udah ada bakal langsung return data dari redis
+    @Cacheable(
+        "getUserById",
+        key= "{#userId}" // harus sama dengan yg di parameter
+    )
     override fun findUserById(userId: Int): ResGetUsersDto {
         val rawData = masterUserRepository.getUserById(userId)
         val result = ResGetUsersDto(
@@ -146,12 +155,16 @@ class MasterUserServiceImpl(
         }
     }
 
-    override fun updateUser(req: ReqUpdateUserDto): ResGetUsersDto {
-        val userId = httpServletRequest.getHeader(Constant.HEADER_USER_ID)
+    @CacheEvict(
+        value = ["getUserById"],
+        key = "{#userId}"
+//        allEntries = true
+    )
+    override fun updateUser(req: ReqUpdateUserDto, userId: Int): ResGetUsersDto {
 
         val user = masterUserRepository.findById(userId.toInt()).orElseThrow {
             throw CustomException(
-                "User id ${userId} tidak ditemukan",
+                "User id $userId tidak ditemukan",
                 HttpStatus.BAD_REQUEST.value()
             )
         }
@@ -168,7 +181,7 @@ class MasterUserServiceImpl(
 
         user.email = req.email
         user.username = req.username
-        user.updatedBy = userId
+        user.updatedBy = userId.toString()
 
         val result = masterUserRepository.save(user)
 
@@ -178,7 +191,4 @@ class MasterUserServiceImpl(
             email = result.email
         )
     }
-
-
-
 }
