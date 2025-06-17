@@ -20,10 +20,23 @@ interface MasterUserRepository: JpaRepository<MasterUserEntity, Int> {
         AND U.isActive = true
         AND U.id = :userId
     """, nativeQuery = false)
-    fun getActiveUserById(
+    fun getUserById(
         @Param("userId") userId: Int
     ): MasterUserEntity
 
     fun findFirstByEmail(email: String): MasterUserEntity?
+
+    @Query("""
+        SELECT U FROM MasterUserEntity U
+        WHERE U.isDelete = false
+        AND U.isActive = true
+        AND U.username = :username
+    """, nativeQuery = false)
     fun findFirstByUsername(username: String): Optional<MasterUserEntity>
+
+    @Query("""
+        SELECT u FROM MasterUserEntity u
+        WHERE u.id IN (:ids)
+    """, nativeQuery = false)
+    fun findAllByIds(ids: List<Int>): List<MasterUserEntity>
 }

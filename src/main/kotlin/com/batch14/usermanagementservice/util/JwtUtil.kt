@@ -2,14 +2,16 @@ package com.batch14.usermanagementservice.util
 
 import com.batch14.usermanagementservice.domain.constant.Constant
 import com.batch14.usermanagementservice.exception.CustomException
+import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
 import java.util.Date
-import java.util.logging.Logger
 
+@Component
 class JwtUtil {
     @Value("\${jwt.secret-key}")
     private lateinit var SECRET_KEY: String
@@ -32,4 +34,18 @@ class JwtUtil {
             throw CustomException("Internal Server Error", 500, Constant.STATUS_ERROR)
         }
     }
+
+    fun decode(token: String): Claims {
+        return try {
+            Jwts.parserBuilder()
+                .setSigningKey(SECRET_KEY.toByteArray())
+                .build()
+                .parseClaimsJws(token)
+                .body
+        } catch (e: JwtException) {
+            throw CustomException("Invalid Token", 401, Constant.STATUS_FAILED)
+        }
+    }
+
+
 }

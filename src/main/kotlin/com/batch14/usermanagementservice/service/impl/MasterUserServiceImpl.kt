@@ -1,7 +1,9 @@
 package com.batch14.usermanagementservice.service.impl
 
+import com.batch14.usermanagementservice.domain.constant.Constant
 import com.batch14.usermanagementservice.domain.dto.request.ReqLoginDto
 import com.batch14.usermanagementservice.domain.dto.request.ReqRegisterDto
+import com.batch14.usermanagementservice.domain.dto.request.ReqUpdateUserDto
 import com.batch14.usermanagementservice.domain.dto.response.ResGetUsersDto
 import com.batch14.usermanagementservice.domain.dto.response.ResLoginDto
 import com.batch14.usermanagementservice.domain.entity.MasterUserEntity
@@ -11,6 +13,8 @@ import com.batch14.usermanagementservice.repository.MasterUserRepository
 import com.batch14.usermanagementservice.service.MasterUserService
 import com.batch14.usermanagementservice.util.BCryptUtil
 import com.batch14.usermanagementservice.util.JwtUtil
+import jakarta.servlet.http.HttpServletRequest
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.util.Optional
 
@@ -19,7 +23,8 @@ class MasterUserServiceImpl(
     private val masterUserRepository: MasterUserRepository,
     private val masterRoleRepository: MasterRoleRepository,
     private val bcrypt: BCryptUtil,
-    private val jwtUtil: JwtUtil
+    private val jwtUtil: JwtUtil,
+    private val httpServletRequest: HttpServletRequest
 ): MasterUserService {
     override fun findAllActiveUsers(): List<ResGetUsersDto> {
         val rawData = masterUserRepository.getAllActiveUser()
@@ -41,8 +46,8 @@ class MasterUserServiceImpl(
         return result
     }
 
-    override fun findActiveUserById(userId: Int): ResGetUsersDto {
-        val rawData = masterUserRepository.getActiveUserById(userId)
+    override fun findUserById(userId: Int): ResGetUsersDto {
+        val rawData = masterUserRepository.getUserById(userId)
         val result = ResGetUsersDto(
             username = rawData.username,
             id = rawData.id,
@@ -78,9 +83,11 @@ class MasterUserServiceImpl(
             throw CustomException("Username sudah terdaftar", 400)
         }
 
+        val hashPw = bcrypt.hash(req.password)
+
         val userRaw = MasterUserEntity(
             email = req.email,
-            password = req.password,
+            password = hashPw,
             username = req.username,
             role = if(role.isPresent){ // ini ga pake role != null
                 role.get()
@@ -123,4 +130,55 @@ class MasterUserServiceImpl(
 
         return ResLoginDto(token)
     }
+
+    override fun findUsersByIds(
+        ids: List<Int>
+    ): List<ResGetUsersDto> {
+        val rawData = masterUserRepository.findAllByIds(
+            ids
+        )
+        return rawData.map {
+            ResGetUsersDto(
+                id = it.id,
+                username = it.username,
+                email = it.email
+            )
+        }
+    }
+
+    override fun updateUser(req: ReqUpdateUserDto): ResGetUsersDto {
+        val userId = httpServletRequest.getHeader(Constant.HEADER_USER_ID)
+
+        val user = masterUserRepository.findById(userId.toInt()).orElseThrow {
+            throw CustomException(
+                "User id ${userId} tidak ditemukan",
+                HttpStatus.BAD_REQUEST.value()
+            )
+        }
+
+        val existingUser = masterUserRepository.findFirstByUsername(req.username)
+        if(existingUser.isPresent) {
+           if(existingUser.get().id != user.id){
+               throw CustomException(
+                   "Username telah terdaftar",
+                   HttpStatus.BAD_REQUEST.value()
+               )
+           }
+        }
+
+        user.email = req.email
+        user.username = req.username
+        user.updatedBy = userId
+
+        val result = masterUserRepository.save(user)
+
+        return ResGetUsersDto(
+            id = result.id,
+            username =  result.username,
+            email = result.email
+        )
+    }
+
+
+
 }

@@ -19,5 +19,11 @@ server:
   servlet:
     context-path: /user-service
 
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
 jwt:
   secret-key: JSKSIIERUJSJSLDI0208U383976767OI
+  expired-in: 3
