@@ -19,8 +19,8 @@ class GlobalExceptionHandler {
         }
         return ResponseEntity(
             BaseResponse(
-                data = errors,
-                message = "Gagal register akun"
+                error = errors,
+                message = "Terdapat Error"
             ),
             HttpStatus.BAD_REQUEST
         )

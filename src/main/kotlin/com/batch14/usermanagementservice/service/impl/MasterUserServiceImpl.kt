@@ -121,7 +121,7 @@ class MasterUserServiceImpl(
             email = user.email,
             username = user.username,
             roleId = user.role?.id,
-            roleName = user.role?.name
+            roleName = user.role?.name,
         )
 
     }
